@@ -1,0 +1,17 @@
+[general]
+name = "Sensus"
+
+# [sensors]
+# probe-present = true # not used right now
+
+[plugged]
+onboard-sample-interval = "10s"
+probe-sample-interval = "10s"
+
+[battery]
+onboard-sample-interval = "30s"
+probe-sample-interval = "30s"
+
+[statusled]
+# Possible values: "always", "plugged-in", "off"
+enabled = "plugged-in"
