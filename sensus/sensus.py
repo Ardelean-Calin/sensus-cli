@@ -9,38 +9,19 @@ from datetime import timedelta
 from dateutil.parser import parse
 from cobs import cobs
 from crc import Calculator, Crc16
-import dfu
+from sensus import dfu
+from sensus.util import util
+from sensus.util.util import PACKETS, read_fw_version
 from collections import namedtuple
 from typing import NamedTuple
 
 import tomli_w
 
 
-class PACKETS:
-    GET_FW_VERSION = b"\x00\x02"
-    GET_MAC_ADDRESS = b"\x03"
-    GET_SENSOR_DATA = b"\x02"
-    GET_CONFIG = b"\x01\x00"
-    SET_CONFIG = b"\x01\x01"
-    RESP_CONFIG_OK = b"\x00\x01\x01"  # Config set successfully
-    # Format: Header, Payload
-    DFU_START = {"header": b"\x00\x00", "payload_fmt": "<LH"}
-    DFU_BLOCK = b"\x00\x01"
-
-
 class STATUSLED_POWERMODE(enum.IntEnum):
     ALWAYS = 0
     PLUGGED_IN = 1
     OFF = 2
-
-
-def encode_payload(header: bytes, payload_raw: bytes | None = None):
-    """Given the header and raw bytes, returns a payload ready to be sent."""
-    crc_calc = Calculator(Crc16.GSM)
-    raw_payload = header + payload_raw if payload_raw is not None else header
-    raw_payload = raw_payload + struct.pack("<H", crc_calc.checksum(raw_payload))
-    return cobs.encode(raw_payload) + b"\0"
-
 
 def decode_sensor_data(data_raw: bytes):
     (
@@ -113,20 +94,6 @@ def cli():
     """This command-line utility can be used to log sensor data, configure and update your Sensus."""
 
 
-def read_packet(ser: serial.Serial):
-    encoded = ser.read_until(b"\0")
-    decoded = cobs.decode(encoded[:-1])
-    if encoded == b"":
-        raise serial.SerialTimeoutException
-    return decoded
-
-
-def read_fw_version(port, timeout=1):
-    with serial.Serial(port, 460800, timeout=timeout) as ser:
-        ser.write(encode_payload(PACKETS.GET_FW_VERSION))
-        fw_version = click.style(read_packet(ser).decode("ascii"), fg="blue", bold=True)
-        return fw_version
-
 
 @click.command()
 @click.option(
@@ -152,7 +119,7 @@ def get_fw_version(port, timeout):
 def config_get(port):
     """Retreives the current config"""
     with serial.Serial(port, 460800) as ser:
-        ser.write(encode_payload(PACKETS.GET_CONFIG))
+        ser.write(util.encode_payload(PACKETS.GET_CONFIG))
         result_encoded = ser.read_until(b"\0")
         result_decoded = cobs.decode(result_encoded[:-1])
         (
@@ -218,7 +185,7 @@ def config_set(config, port):
             )
 
             with serial.Serial(port, 460800) as ser:
-                ser.write(encode_payload(PACKETS.SET_CONFIG, payload))
+                ser.write(util.encode_payload(PACKETS.SET_CONFIG, payload))
                 result_encoded = ser.read_until(b"\0")
                 result_decoded = cobs.decode(result_encoded[:-1])
 
@@ -265,7 +232,7 @@ def log(port, output_file, every):
     with serial.Serial(port, 460800) as ser:
         while True:
             start_time = datetime.datetime.now()
-            ser.write(encode_payload(PACKETS.GET_SENSOR_DATA))
+            ser.write(util.encode_payload(PACKETS.GET_SENSOR_DATA))
             result_encoded = ser.read_until(b"\0")
             result_decoded = cobs.decode(result_encoded[:-1])
             # Extract the sensor data
@@ -304,13 +271,13 @@ def info(port):
     """Display information such as MAC address and FW version"""
 
     with serial.Serial(port, 460800) as ser:
-        ser.write(encode_payload(PACKETS.GET_FW_VERSION))
+        ser.write(util.encode_payload(PACKETS.GET_FW_VERSION))
         result_encoded = ser.read_until(b"\0")
         result_decoded = cobs.decode(result_encoded[:-1])
         # Extract the firmware version
         version = result_decoded[4:].decode("ascii")
 
-        ser.write(encode_payload(PACKETS.GET_MAC_ADDRESS))
+        ser.write(util.encode_payload(PACKETS.GET_MAC_ADDRESS))
         result_encoded = ser.read_until(b"\0")
         result_decoded = cobs.decode(result_encoded[:-1])
         # Extract the MAC address

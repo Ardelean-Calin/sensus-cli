@@ -1,9 +1,9 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name="sensus-cli",
     version="0.1.0",
-    py_modules=["sensus"],
+    packages=find_packages(),
     install_requires=[
         "Click",
         "Pyserial",
@@ -16,7 +16,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "sensus = sensus:cli",
+            "sensus = sensus.sensus:cli",
         ],
     },
 )

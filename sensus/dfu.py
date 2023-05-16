@@ -7,7 +7,7 @@ import time
 from cobs import cobs
 from intelhex import IntelHex
 
-import sensus
+from sensus.util import util
 
 # Define the page size in bytes
 PAGE_SIZE = 4096
@@ -68,7 +68,7 @@ def update(port, hex):
     dfu_header = create_header(len(pages) * PAGE_SIZE)
     blocks = get_block_dict(pages)
 
-    to_send = sensus.encode_payload(b"\x00\x00", dfu_header)
+    to_send = util.encode_payload(b"\x00\x00", dfu_header)
     current_index = 0
     errors = 0
     with serial.Serial(port, 460800) as ser:
@@ -99,7 +99,7 @@ def update(port, hex):
                 block = blocks[current_index]
                 # block_str = " ".join(f'{x:02X}' for x in list(block))
                 # print(f"Sending block: {' '.join(f'{x:02X}' for x in list(block))}")
-                to_send = sensus.encode_payload(b"\x00\x01", block)
+                to_send = util.encode_payload(b"\x00\x01", block)
                 ser.write(to_send)
 
         # DFU Done
@@ -108,7 +108,7 @@ def update(port, hex):
     for i in range(20):
         click.secho(f"Attempting to connect to Sensus... [Attempt {i+1} of {20}]")
         try:
-            new_version = sensus.read_fw_version(port)
+            new_version = util.read_fw_version(port)
             click.secho(f"Successfully updated to  {new_version}", fg="green")
             break
         except serial.SerialTimeoutException:
