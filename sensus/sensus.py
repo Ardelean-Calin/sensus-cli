@@ -23,6 +23,7 @@ class STATUSLED_POWERMODE(enum.IntEnum):
     PLUGGED_IN = 1
     OFF = 2
 
+
 def decode_sensor_data(data_raw: bytes):
     (
         illuminance,
@@ -30,8 +31,9 @@ def decode_sensor_data(data_raw: bytes):
         humidity,
         battery_voltage,
         moisture,
+        moisture_raw,
         soil_temp,
-    ) = struct.unpack("<ffffff", data_raw)
+    ) = struct.unpack("<fffffff", data_raw)
 
     data = {
         "Illuminance [Lux]": round(illuminance, 2),
@@ -39,6 +41,7 @@ def decode_sensor_data(data_raw: bytes):
         "Air Humidity [%]": round(humidity, 2),
         "Battery Voltage [V]": round(battery_voltage, 3),
         "Soil Moisture [%]": round(moisture, 2),
+        "Soil Moisture [raw]": int(moisture_raw),
         "Soil Temperature [°C]": round(soil_temp, 2),
     }
 
@@ -67,21 +70,6 @@ def to_timestamp(value):
         raise click.BadParameter("Should be something like 20m30s or 60s")
 
 
-def status_to_enum(status_str: str) -> int:
-    """Converts the statuled strings `always`, `plugged-in` and `off` to their enum representations."""
-    retval = None
-    if status_str.lower() == "always":
-        retval = STATUSLED_POWERMODE.ALWAYS
-    elif status_str.lower() == "plugged-in":
-        retval = STATUSLED_POWERMODE.PLUGGED_IN
-    elif status_str.lower() == "off":
-        retval = STATUSLED_POWERMODE.OFF
-    else:
-        raise Exception
-
-    return int(retval)
-
-
 def str_to_ms(time_str: str) -> int:
     """Convert a time formatted string like `1m10s` to milliseconds."""
     dt = parse(time_str)
@@ -92,7 +80,6 @@ def str_to_ms(time_str: str) -> int:
 @click.group()
 def cli():
     """This command-line utility can be used to log sensor data, configure and update your Sensus."""
-
 
 
 @click.command()
@@ -119,18 +106,33 @@ def get_fw_version(port, timeout):
 def config_get(port):
     """Retreives the current config"""
     with serial.Serial(port, 460800) as ser:
+        cursor = 3
+        first_part_len = struct.calcsize("<LLLLB")
+
         ser.write(util.encode_payload(PACKETS.GET_CONFIG))
         result_encoded = ser.read_until(b"\0")
         result_decoded = cobs.decode(result_encoded[:-1])
+
         (
             onb_plugged_ms,
             probe_plugged_ms,
             onb_battery_ms,
             probe_battery_ms,
-            status_led,
             size_of_name,
-        ) = struct.unpack("<LLLLBB", result_decoded[3 : 3 + struct.calcsize("<LLLLBB")])
-        name = result_decoded[3 + struct.calcsize("<LLLLBB") :].decode("ascii")
+        ) = struct.unpack("<LLLLB", result_decoded[cursor : cursor + first_part_len])
+
+        name = result_decoded[
+            cursor + first_part_len : cursor + first_part_len + size_of_name
+        ].decode("ascii")
+
+        cursor += first_part_len + size_of_name
+
+        (probe_lut_size,) = struct.unpack("<B", result_decoded[cursor : cursor + 1])
+        cursor += 1
+        probe_lut = struct.unpack(f"{probe_lut_size}f", result_decoded[cursor:])
+        probe_lut_frequencies = probe_lut[0::2]
+        probe_lut_percentages = probe_lut[1::2]
+        probe_lut = zip(probe_lut_frequencies, probe_lut_percentages)
 
         # Create a dictionary which we will then convert to a TOML.
         config = {
@@ -143,7 +145,9 @@ def config_get(port):
                 "onboard-sample-interval": f"{int(onb_plugged_ms/1000)}s",
                 "probe-sample-interval": f"{int(probe_plugged_ms/1000)}s",
             },
-            "statusled": {"enabled": f"{['always', 'plugged-in', 'off'][status_led]}"},
+            "probe_calibration": {
+                str(int(k)): f"{v * 100.0:.1f}%" for k, v in probe_lut
+            },
         }
 
         toml = tomli_w.dumps(config)
@@ -167,35 +171,44 @@ def config_set(config, port):
             probe_plugged_ms = str_to_ms(d["plugged"]["probe-sample-interval"])
             onb_battery_ms = str_to_ms(d["battery"]["onboard-sample-interval"])
             probe_battery_ms = str_to_ms(d["battery"]["probe-sample-interval"])
-            status_led = status_to_enum(d["statusled"]["enabled"])
-
-            name = d["general"]["name"]
-            size_of_name = len(name)
-
-            # Create the raw bytes from the config.toml
-            payload = struct.pack(
-                f"<LLLLBB{size_of_name}B",
-                onb_plugged_ms,
-                probe_plugged_ms,
-                onb_battery_ms,
-                probe_battery_ms,
-                status_led,
-                size_of_name,
-                *bytes(name, encoding="ascii"),
-            )
-
-            with serial.Serial(port, 460800) as ser:
-                ser.write(util.encode_payload(PACKETS.SET_CONFIG, payload))
-                result_encoded = ser.read_until(b"\0")
-                result_decoded = cobs.decode(result_encoded[:-1])
-
-                if result_decoded == PACKETS.RESP_CONFIG_OK:
-                    click.secho("Config set successfully!", bold=True, fg="green")
+            probe_calib = util.table_to_vector(d["probe_calibration"])
+            probe_calib_len = len(probe_calib)
 
         except:
             raise click.BadParameter(
                 f"Config file malformed. Are you sure {config} is a valid Sensus config file?"
             )
+
+        if probe_calib_len > 20:
+            raise click.ClickException(
+                f"Error in {f.name}!\nMaximum allowed probe calibration points: 10"
+            )
+
+        name = d["general"]["name"]
+        size_of_name = len(name)
+
+        # Create the raw bytes from the config.toml
+        payload = struct.pack(
+            f"<LLLLB{size_of_name}BB{probe_calib_len}f",
+            onb_plugged_ms,
+            probe_plugged_ms,
+            onb_battery_ms,
+            probe_battery_ms,
+            size_of_name,
+            *bytes(name, encoding="ascii"),
+            probe_calib_len,
+            *probe_calib,
+        )
+
+        print(list(payload))
+
+        with serial.Serial(port, 460800) as ser:
+            ser.write(util.encode_payload(PACKETS.SET_CONFIG, payload))
+            result_encoded = ser.read_until(b"\0")
+            result_decoded = cobs.decode(result_encoded[:-1])
+
+            if result_decoded == PACKETS.RESP_CONFIG_OK:
+                click.secho("Config set successfully!", bold=True, fg="green")
 
 
 @click.command()

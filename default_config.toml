@@ -12,6 +12,7 @@ probe-sample-interval = "10s"
 onboard-sample-interval = "30s"
 probe-sample-interval = "30s"
 
-[statusled]
-# Possible values: "always", "plugged-in", "off"
-enabled = "plugged-in"
+# A look-up table can be used to calibrate the probe. Maximum 10 points.
+[probe_calibration]
+1600000 = "0%"
+100000 = "100%"

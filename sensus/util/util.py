@@ -17,13 +17,13 @@ class PACKETS:
     DFU_BLOCK = b"\x00\x01"
 
 
-
 def read_packet(ser: serial.Serial):
     encoded = ser.read_until(b"\0")
     decoded = cobs.decode(encoded[:-1])
     if encoded == b"":
         raise serial.SerialTimeoutException
     return decoded
+
 
 def encode_payload(header: bytes, payload_raw: bytes | None = None):
     """Given the header and raw bytes, returns a payload ready to be sent."""
@@ -38,3 +38,16 @@ def read_fw_version(port, timeout=1):
         ser.write(encode_payload(PACKETS.GET_FW_VERSION))
         fw_version = click.style(read_packet(ser).decode("ascii"), fg="blue", bold=True)
         return fw_version
+
+
+def p2f(x):
+    """Converts a percentage to float."""
+    return float(x.strip("%")) / 100
+
+
+def table_to_vector(table: dict):
+    vector = []
+    for k, v in sorted(table.items(), key=lambda kv: float(kv[0])):
+        vector.extend([float(k), p2f(v)])
+    # vector.insert(0, len(vector))
+    return vector
