@@ -87,7 +87,7 @@ def cli():
     "--port",
     required=True,
     type=click.Path(),
-    help="Serial port of the Sensus you want to update (ex. /dev/ttyUSB0)",
+    help="Serial port of Sensus (ex. /dev/ttyUSB0)",
 )
 @click.option("--timeout", type=str, default="3s", help="Timeout in seconds.")
 def get_fw_version(port, timeout):
@@ -100,7 +100,7 @@ def get_fw_version(port, timeout):
     "--port",
     required=True,
     type=click.Path(),
-    help="Serial port of the Sensus you want to update (ex. /dev/ttyUSB0)",
+    help="Serial port of Sensus (ex. /dev/ttyUSB0)",
 )
 @click.command()
 def config_get(port):
@@ -160,7 +160,7 @@ def config_get(port):
     "--port",
     required=True,
     type=click.Path(),
-    help="Serial port of the Sensus you want to update (ex. /dev/ttyUSB0)",
+    help="Serial port of Sensus (ex. /dev/ttyUSB0)",
 )
 def config_set(config, port):
     """Configure Sensus via a TOML file"""
@@ -216,7 +216,7 @@ def config_set(config, port):
     "--port",
     required=True,
     type=click.Path(),
-    help="Serial port of the Sensus you want to update (ex. /dev/ttyUSB0)",
+    help="Serial port of Sensus (ex. /dev/ttyUSB0)",
 )
 @click.option(
     "--output-file",
@@ -278,7 +278,7 @@ def log(port, output_file, every):
     "--port",
     required=True,
     type=click.Path(),
-    help="Serial port of the Sensus you want to update (ex. /dev/ttyUSB0)",
+    help="Serial port of Sensus (ex. /dev/ttyUSB0)",
 )
 def info(port):
     """Display information such as MAC address and FW version"""

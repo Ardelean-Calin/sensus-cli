@@ -3,9 +3,10 @@ import struct
 import click
 import serial
 import sys
-import time
 from cobs import cobs
 from intelhex import IntelHex
+import requests
+import tempfile
 
 from sensus.util import util
 
@@ -44,19 +45,47 @@ def get_block_dict(pages):
     "--port",
     required=True,
     type=click.Path(),
-    help="Serial port of the Sensus you want to update (ex. /dev/ttyUSB0)",
+    help="Serial port of Sensus (ex. /dev/ttyUSB0)",
 )
 @click.option(
     "--hex",
     type=click.Path(exists=True),
-    required=True,
+    required=False,
     help=".hex file containing firmware to be flashed",
 )
 def update(port, hex):
     """Update Sensus firmware via USB"""
-    # Doesn't matter what Firmware Version we have, we should always be able to flash it.
-    # Create an instance of the IntelHex class with the input file name
-    ih = IntelHex(hex)
+    if hex is not None:
+        # Doesn't matter what Firmware Version we have, we should always be able to flash it.
+        # Create an instance of the IntelHex class with the input file name
+        ih = IntelHex(hex)
+    else:
+        # Get the latest HEX from Github
+        response = requests.get(
+            "https://api.github.com/repos/ardelean-calin/sensus-cli/releases/latest"
+        )
+        latest_tag = response.json()["tag_name"]
+        current_version = util.read_fw_version(port)
+        if latest_tag == current_version:
+            click.echo(
+                "Did not update. You are already at the latest firmware version: ",
+                nl=False,
+            )
+            click.secho(f"{current_version}", bold=True, fg="green")
+            raise click.Abort()
+        # Else, download the latest hex
+        click.secho("Your sensus needs updating:")
+        click.echo(f"{'Current firmware version':28}", nl=False)
+        click.secho(f"{current_version}", fg="yellow", bold=True)
+        click.echo(f"{'Latest firmware version':28}", nl=False)
+        click.secho(f"{latest_tag}", fg="green", bold=True)
+        url = f"https://github.com/Ardelean-Calin/sensus-cli/releases/latest/download/sensus_{latest_tag}.hex"
+        response = requests.get(url)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".hex") as f:
+            f.write(response.content)
+            temp_file_name = f.name
+
+        ih = IntelHex(temp_file_name)
 
     # Get the start and end address of the data in the HEX file
     start_addr, end_addr = ih.minaddr(), ih.maxaddr()

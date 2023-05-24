@@ -13,6 +13,7 @@ setup(
         "tomli",
         "tomli-w",
         "intelhex",
+        "requests",
     ],
     entry_points={
         "console_scripts": [

@@ -36,7 +36,7 @@ def encode_payload(header: bytes, payload_raw: bytes | None = None):
 def read_fw_version(port, timeout=1):
     with serial.Serial(port, 460800, timeout=timeout) as ser:
         ser.write(encode_payload(PACKETS.GET_FW_VERSION))
-        fw_version = click.style(read_packet(ser).decode("ascii"), fg="blue", bold=True)
+        fw_version = read_packet(ser)[4:].decode("ascii")
         return fw_version
 
 
