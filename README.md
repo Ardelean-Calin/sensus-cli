@@ -1,3 +1,5 @@
+To check out the documentation, please go to: **https://artech.gitbook.io/sensus/**
+
 # Sensus
 Sensus is a ultra-lowpower, Homeassistant-compatible environment and plant sensor. It started as a plant health monitoring sensor but ended up being a more general-purpose environment sensor with optional addons, one of which is the Plant Health Monitoring Addon.
 
