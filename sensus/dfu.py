@@ -62,7 +62,7 @@ def update(port, hex):
     else:
         # Get the latest HEX from Github
         response = requests.get(
-            "https://api.github.com/repos/ardelean-calin/sensus-cli/releases/latest"
+            "https://api.github.com/repos/ardelean-calin/sensus-fw/releases/latest"
         )
         latest_tag = response.json()["tag_name"]
         current_version = util.read_fw_version(port)
@@ -79,7 +79,7 @@ def update(port, hex):
         click.secho(f"{current_version}", fg="yellow", bold=True)
         click.echo(f"{'Latest firmware version':28}", nl=False)
         click.secho(f"{latest_tag}", fg="green", bold=True)
-        url = f"https://github.com/Ardelean-Calin/sensus-cli/releases/latest/download/sensus_{latest_tag}.hex"
+        url = f"https://github.com/Ardelean-Calin/sensus-fw/releases/latest/download/sensus_{latest_tag}.hex"
         response = requests.get(url)
         with tempfile.NamedTemporaryFile(delete=False, suffix=".hex") as f:
             f.write(response.content)
