@@ -53,7 +53,14 @@ def get_block_dict(pages):
     required=False,
     help=".hex file containing firmware to be flashed",
 )
-def update(port, hex):
+@click.option(
+    "--force",
+    is_flag=True,
+    show_default=True,
+    default=False,
+    help="Force updating to the latest version found online.",
+)
+def update(port, hex, force):
     """Update Sensus firmware via USB"""
     if hex is not None:
         # Doesn't matter what Firmware Version we have, we should always be able to flash it.
@@ -66,7 +73,7 @@ def update(port, hex):
         )
         latest_tag = response.json()["tag_name"]
         current_version = util.read_fw_version(port)
-        if latest_tag == current_version:
+        if (latest_tag == current_version) and (force != True):
             click.echo(
                 "Did not update. You are already at the latest firmware version: ",
                 nl=False,
