@@ -5,6 +5,7 @@ import tomli
 import time
 import datetime
 import enum
+import sys
 from datetime import timedelta
 from dateutil.parser import parse
 from cobs import cobs
@@ -80,6 +81,7 @@ def str_to_ms(time_str: str) -> int:
 @click.group()
 def cli():
     """This command-line utility can be used to log sensor data, configure and update your Sensus."""
+    pass
 
 
 @click.command()
@@ -311,3 +313,6 @@ cli.add_command(config_get)
 cli.add_command(log)
 cli.add_command(get_fw_version)
 cli.add_command(info)
+
+if getattr(sys, "frozen", False):
+    cli(sys.argv[1:])
