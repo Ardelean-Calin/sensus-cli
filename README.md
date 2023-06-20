@@ -1,4 +1,4 @@
-## To check out the documentation, please go to [this page](https://artech.gitbook.io/sensus?source=Github)
+## To check out the documentation, please go to [this page](https://sensus.klausen.tech?source=Github)
 
 ### Install
 This command-line application can be used to update, configure and log data from Sensus. Installing it is as simple as running
