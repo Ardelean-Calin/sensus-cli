@@ -202,8 +202,6 @@ def config_set(config, port):
             *probe_calib,
         )
 
-        print(list(payload))
-
         with serial.Serial(port, 460800) as ser:
             ser.write(util.encode_payload(PACKETS.SET_CONFIG, payload))
             result_encoded = ser.read_until(b"\0")
