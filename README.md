@@ -1,10 +1,13 @@
 ## To check out the documentation, please go to [this page](https://sensus.klausen.tech?source=Github)
 
 ### Install
-This command-line application can be used to update, configure and log data from Sensus. Installing it is as simple as running
 
+This command-line application can be used to update, configure and log data from Sensus. 
+To run this command-line application, you will need to have [**pipx**](https://github.com/pypa/pipx) installed.
+
+Simply run this command to install `sensus-cli`:
 ```
-pip3 install git+https://github.com/Ardelean-Calin/sensus-cli.git
+pipx install git+https://github.com/Ardelean-Calin/sensus-cli.git
 ```
 
 Then, to list the available commands, simply type

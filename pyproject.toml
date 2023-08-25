@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "sensus-cli"
+version = "0.1.0"
+description = "Command line interface for upgrading and configuring Sensus."
+authors = ["Ardelean Calin <9417983+Ardelean-Calin@users.noreply.github.com>"]
+readme = "README.md"
+packages = [{include = "sensus"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pyserial = "^3.5"
+click = "^8.1.7"
+cobs = "^1.2.0"
+crc = "^4.3.0"
+python-dateutil = "^2.8.2"
+tomli = "^2.0.1"
+tomli-w = "^1.0.0"
+intelhex = "^2.3.0"
+requests = "^2.31.0"
+
+[tool.poetry.scripts]
+sensus = "sensus.sensus:cli"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
